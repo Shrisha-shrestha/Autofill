@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'package:flutter_html/flutter_html.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:intl/intl.dart';
 
@@ -16,7 +16,6 @@ class SearchDetailsView extends StatefulWidget {
 class _SearchDetailsViewState extends State<SearchDetailsView> {
   final SearchServicesImplementation searchServices =
       SearchServicesImplementation();
-  
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +28,10 @@ class _SearchDetailsViewState extends State<SearchDetailsView> {
                   fontWeight: FontWeight.w600,
                   color: Colors.black),
             ),
-            leading: const Icon(Remix.arrow_left_s_line),
+            leading: IconButton(
+              icon: const Icon(Remix.arrow_left_s_line),
+              onPressed: () => Navigator.pop(context),
+            ),
             backgroundColor: Colors.white,
             scrolledUnderElevation: 0.0),
         body: FutureBuilder(
@@ -168,30 +170,30 @@ class _SearchDetailsViewState extends State<SearchDetailsView> {
                               ),
                             ]),
                           ),
-                          // Container(
-                          //   width: MediaQuery.of(context).size.width,
-                          //   padding: const EdgeInsets.all(16.0),
-                          //   child: Html(
-                          //     style: {
-                          //       "p": Style(
-                          //         textAlign: TextAlign.justify,
-                          //         fontFamily: 'Noto Sans Regular',
-                          //         fontWeight: FontWeight.w400,
-                          //         fontSize: FontSize(16.0),
-                          //       ),
-                          //       "strong": Style(
-                          //         textAlign: TextAlign.justify,
-                          //         fontFamily: 'Noto Sans SemiBold',
-                          //       ),
-                          //       'a': Style(
-                          //         color: Colors.blue[900],
-                          //         textDecoration: TextDecoration.none,
-                          //       ),
-                          //     },
-                          //     data: snapshot.data!.body,
-                          //     onLinkTap: null
-                          //   ),
-                          // ),
+                          Container(
+                            width: MediaQuery.of(context).size.width,
+                            padding: const EdgeInsets.all(16.0),
+                            child: Html(
+                              style: {
+                                "p": Style(
+                                  textAlign: TextAlign.justify,
+                                  fontFamily: 'Noto Sans Regular',
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: FontSize(16.0),
+                                ),
+                                "strong": Style(
+                                  textAlign: TextAlign.justify,
+                                  fontFamily: 'Noto Sans SemiBold',
+                                ),
+                                'a': Style(
+                                  color: Colors.blue[900],
+                                  textDecoration: TextDecoration.none,
+                                ),
+                              },
+                              data: snapshot.data!.body,
+                              onLinkTap: null
+                            ),
+                          ),
                           Container(
                             width: MediaQuery.of(context).size.width,
                             padding: const EdgeInsets.all(16.0),
