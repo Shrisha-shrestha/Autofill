@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:developer';
+
 import 'package:autofill/src/features/autofill/services/search_services_implementaion.dart';
 import 'package:autofill/src/features/autofill/views/search_details_view.dart';
 import 'package:autofill/src/features/autofill/views/search_history_provider.dart';
@@ -15,178 +18,191 @@ class CustomAutoFillView extends StatefulWidget {
 class _CustomAutoFillViewState extends State<CustomAutoFillView> {
   final TextEditingController _searchTextEditingController =
       TextEditingController();
-  bool istyping = true;
   bool isFocused = false;
+  late final Future? myFuture;
   final SearchServicesImplementation searchServices =
       SearchServicesImplementation();
+  Timer? _timer;
+  final int _typingDelay = 1000;
+  FocusNode _FocusNode = FocusNode();
+  void _startTimer() {
+    _timer = Timer(Duration(milliseconds: _typingDelay), () {
+      setState(() {
+        isFocused = true;
+      });
+    });
+  }
+
+  void _resetTimer() {
+    _timer?.cancel();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black87.withOpacity(0.8),
-        title: const Text(
-          'Autofill with API',
-          style: TextStyle(color: Colors.white),
-        ),
-        centerTitle: true,
-      ),
-      body: ChangeNotifierProvider<SearchViewModel>(
-        create: (context) => SearchViewModel(),
-        builder: (context, child) => Container(
-          color: const Color.fromRGBO(150, 151, 156, 0.2),
-          height: MediaQuery.of(context).size.height,
-          width: MediaQuery.of(context).size.width,
-          padding: const EdgeInsets.all(15.0),
-          child: CustomScrollView(slivers: [
-            SliverToBoxAdapter(
-              child: SearchAutocompleteTextField(
-                onTapOutside: (event) {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  setState(() {
-                    isFocused = false;
-                  });
-                },
-                onSubmit: () {
-                  context.read<SearchViewModel>().addToHistory(
-                      searchKeyWord: _searchTextEditingController.text);
-
-                  // Navigator.push(
-                  //     context,
-                  //     MaterialPageRoute(
-                  //       builder: (BuildContext context) =>
-                  //           const SearchResultsView(),
-                  //     ));
-                },
-                hint: 'Search Category',
-                fieldTextEditingController: _searchTextEditingController,
-                onTap: () async {
-                  setState(() {
-                    isFocused = true;
-                  });
-                  context.read<SearchViewModel>().initial();
-                },
-                onChanged: (value) {
-                  if (_searchTextEditingController.text.isEmpty) {
-                    setState(() {
-                      istyping = true;
-                    });
-                  } else {
-                    setState(() {
-                      istyping = false;
-                    });
-                  }
-                },
-              ),
+    return SafeArea(
+      child: Scaffold(
+        body: ChangeNotifierProvider<SearchViewModel>(
+          create: (context) => SearchViewModel(),
+          builder: (context, child) => Container(
+              padding: const EdgeInsets.all(15.0),
+              child:Column(children: [SearchAutocompleteTextField(
+              // onTapOutside: (event) {
+              //   FocusManager.instance.primaryFocus?.unfocus();
+              //   setState(() {
+              //     isFocused = false;
+              //   });
+              // },
+              onSubmit: () {
+                context.read<SearchViewModel>().addToHistory(
+                    searchKeyWord: _searchTextEditingController.text);
+          
+                // Navigator.push(
+                //     context,
+                //     MaterialPageRoute(
+                //       builder: (BuildContext context) =>
+                //           const SearchResultsView(),
+                //     ));
+              },
+              hint: 'Search Category',
+              fieldTextEditingController: _searchTextEditingController,
+              onTap: () async {
+                setState(() {
+                  isFocused = true;
+                });
+                context.read<SearchViewModel>().initial();
+                     
+              },
+              onChanged: (value) {
+                if (_searchTextEditingController.text.isNotEmpty) {
+                  _resetTimer();
+                }
+              },
             ),
-            SliverToBoxAdapter(
-              child: Opacity(
-                opacity: isFocused ? 1.0 : 0.0,
-                child: istyping
-                    ? SizedBox(
-                        height: 500.0,
-                        child: ListView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          itemCount: context
-                              .watch<SearchViewModel>()
-                              .getSearchHistory
-                              .length,
-                          itemBuilder: (context, index) {
-                            final element = context
-                                .read<SearchViewModel>()
-                                .getSearchHistory[index];
-                            return InkWell(
-                              borderRadius: BorderRadius.circular(8.0),
-                              onTap: () {
-                                _searchTextEditingController.text = element;
-                                setState(() {
-                                  isFocused = true;
-                                  istyping = false;
-                                });
-                              },
-                              child: Container(
-                                margin:
-                                    const EdgeInsets.symmetric(vertical: 8.0),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Padding(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 5.0),
-                                          child: Icon(
-                                              Icons.access_time_outlined,
-                                              color: Colors.grey),
-                                        ),
-                                        Text(element),
-                                      ],
-                                    ),
-                                    IconButton(
-                                        onPressed: () {
-                                          context
-                                              .read<SearchViewModel>()
-                                              .removeFrmHistory(
-                                                  searchKeyWord: element);
-                                          setState(() {
-                                            isFocused = true;
-                                          });
-                                        },
-                                        icon: const Icon(
-                                          Icons.close,
-                                          size: 15.0,
-                                        ))
-                                  ],
-                                ),
+            Opacity(
+              opacity: isFocused ? 1.0 : 0.0,
+              child: _searchTextEditingController.text.isEmpty
+                  ? SizedBox(
+                      height: 500.0,
+                      child: ListView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: context
+                            .watch<SearchViewModel>()
+                            .getSearchHistory
+                            .length,
+                        itemBuilder: (context, index) {
+                          final element = context
+                              .read<SearchViewModel>()
+                              .getSearchHistory[index];
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(8.0),
+                            onTap: () {
+                              _searchTextEditingController.text = element;
+                              setState(() {
+                                isFocused = true;
+                              });
+                            },
+                            child: Container(
+                              margin:
+                                  const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 5.0),
+                                        child: Icon(
+                                            Icons.access_time_outlined,
+                                            color: Colors.grey),
+                                      ),
+                                      Text(element),
+                                    ],
+                                  ),
+                                  IconButton(
+                                      onPressed: () {
+                                        context
+                                            .read<SearchViewModel>()
+                                            .removeFrmHistory(
+                                                searchKeyWord: element);
+                                        setState(() {
+                                          isFocused = true;
+                                        });
+                                      },
+                                      icon: const Icon(
+                                        Icons.close,
+                                        size: 15.0,
+                                      ))
+                                ],
                               ),
-                            );
-                          },
-                        ),
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: SizedBox(
-                            height: 300.0,
-                            width: 20.0,
-                            child: FutureBuilder(
-                                future: searchServices.getBlogOverviewList(
-                                    categorySlug:
-                                        _searchTextEditingController.text),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.done) {
-                                    if (snapshot.hasError) {
-                                      return Center(
-                                        child: Text(
-                                          '${snapshot.error} occurred',
-                                          style: const TextStyle(fontSize: 18),
-                                        ),
-                                      );
-                                    } else if (snapshot.hasData) {
-                                      return snapshot.data!.fold(
-                                        (l) {
-                                          return SizedBox(
-                                            width: double.maxFinite,
-                                            child: ListView.separated(
-                                                separatorBuilder:
-                                                    (context, index) => Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                      .symmetric(
-                                                                  vertical:
-                                                                      8.0),
-                                                          child: Divider(
-                                                            color: Colors
-                                                                .grey[300],
-                                                          ),
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: SizedBox(
+                          height: 300.0,
+                          width: 20.0,
+                          child: FutureBuilder(
+                              future: searchServices.getBlogOverviewList(
+                                  categorySlug: _searchTextEditingController
+                                          .text.isEmpty
+                                      ? 'l'
+                                      : _searchTextEditingController.text),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.done) {
+                                  if (snapshot.hasError) {
+                                    return Center(
+                                      child: Text(
+                                        '${snapshot.error} occurred',
+                                        style: const TextStyle(fontSize: 18),
+                                      ),
+                                    );
+                                  } else if (snapshot.hasData) {
+                                    return snapshot.data!.fold(
+                                      (l) {
+                                        return SizedBox(
+                                          width: double.maxFinite,
+                                          child: ListView.separated(
+                                              separatorBuilder:
+                                                  (context, index) => Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                    .symmetric(
+                                                                vertical:
+                                                                    8.0),
+                                                        child: Divider(
+                                                          color: Colors
+                                                              .grey[300],
                                                         ),
-                                                shrinkWrap: true,
-                                                physics:
-                                                    const NeverScrollableScrollPhysics(),
-                                                itemCount: 3,
-                                                itemBuilder: (context, index) {
-                                                  return Row(
+                                                      ),
+                                              shrinkWrap: true,
+                                              physics:
+                                                  const NeverScrollableScrollPhysics(),
+                                              itemCount: 3,
+                                              itemBuilder: (context, index) {
+                                                return InkWell(
+                                                  onTap: () => Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              SearchDetailsView(
+                                                                slug:
+                                                                    l[index].slug,
+                                                              ))),
+                                                  child: Row(
                                                     children: [
                                                       Container(
                                                         height: 50.0,
@@ -197,14 +213,11 @@ class _CustomAutoFillViewState extends State<CustomAutoFillView> {
                                                                     BorderRadius
                                                                         .circular(
                                                                             8.0),
-                                                                image:
-                                                                    DecorationImage(
-                                                                        fit: BoxFit
-                                                                            .contain,
-                                                                        image:
-                                                                            NetworkImage(
-                                                                          'http://192.168.99.20/${l[index].headerImg}',
-                                                                        ))),
+                                                                image: DecorationImage(
+                                                                    fit: BoxFit.contain,
+                                                                    image: NetworkImage(
+                                                                      'http://192.168.99.20/${l[index].headerImg}',
+                                                                    ))),
                                                       ),
                                                       const SizedBox(
                                                         width: 10.0,
@@ -226,24 +239,23 @@ class _CustomAutoFillViewState extends State<CustomAutoFillView> {
                                                                       .name,
                                                                 ),
                                                                 const Padding(
-                                                                  padding: EdgeInsets
-                                                                      .symmetric(
-                                                                          horizontal:
-                                                                              8.0),
-                                                                  child:
-                                                                      Text('.'),
+                                                                  padding: EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          8.0),
+                                                                  child: Text(
+                                                                      '.'),
                                                                 ),
                                                                 Text(
                                                                   DateFormat(
                                                                           'MMM d, yyyy')
-                                                                      .format(l[
-                                                                              index]
-                                                                          .createdAt),
+                                                                      .format(
+                                                                          l[index].createdAt),
                                                                 ),
                                                               ],
                                                             ),
                                                             Text(
-                                                              l[index].excerpt,
+                                                              l[index]
+                                                                  .excerpt,
                                                               maxLines: 2,
                                                               overflow:
                                                                   TextOverflow
@@ -253,33 +265,32 @@ class _CustomAutoFillViewState extends State<CustomAutoFillView> {
                                                         ),
                                                       )
                                                     ],
-                                                  );
-                                                }),
-                                          );
-                                        },
-                                        (r) {
-                                          return Text(
-                                            r.detail,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold),
-                                          );
-                                        },
-                                      );
-                                    }
-                                  } else if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return const Center(
-                                      child: SizedBox(
-                                          width: 30.0,
-                                          child: CircularProgressIndicator()),
+                                                  ),
+                                                );
+                                              }),
+                                        );
+                                      },
+                                      (r) {
+                                        return Text(
+                                          r.detail,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        );
+                                      },
                                     );
                                   }
-                                  return const Text('lol');
-                                })),
-                      ),
-              ),
-            )
-          ]),
+                                } else if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(
+                                    child: SizedBox(
+                                        width: 30.0,
+                                        child: CircularProgressIndicator()),
+                                  );
+                                }
+                                return const Text('lol');
+                              })),
+                    ),
+            )],),)
         ),
       ),
     );
@@ -343,5 +354,91 @@ class SearchAutocompleteTextField extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class CustomLocationWidget extends StatelessWidget {
+  const CustomLocationWidget(
+      {super.key,
+      required this.loctionType,
+      required this.locationValue,
+      required this.bRG,
+      required this.height});
+  final String locationValue;
+  final String loctionType;
+  final BorderRadiusGeometry bRG;
+  final double height;
+  @override
+  Widget build(BuildContext context) {
+    return Stack(children: [
+      ClipRRect(
+        borderRadius: bRG,
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                top: BorderSide(
+                    color: Color.fromRGBO(202, 203, 206, 0.4), width: 1),
+              )),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(width: 38),
+              Expanded(
+                child: SizedBox(
+                  child: Text(
+                    loctionType,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF636469),
+                      fontSize: 16,
+                      fontFamily: 'Mukta',
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Text(
+                  locationValue,
+                  style: const TextStyle(
+                    color: Color(0xFF4A4B4F),
+                    fontSize: 16,
+                    fontFamily: 'Mukta',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const Icon(Icons.keyboard_arrow_right_outlined)
+            ],
+          ),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(left: 16.0, top: 18.0),
+        child: Stack(alignment: Alignment.topCenter, children: [
+          AnimatedContainer(
+            width: 2.0,
+            height: height,
+            decoration: const BoxDecoration(
+              color: Color(0xFFF19541),
+            ),
+            duration: const Duration(seconds: 1),
+            curve: Curves.easeOutCirc,
+          ),
+          Container(
+            width: 10,
+            height: 10,
+            decoration: const ShapeDecoration(
+              color: Color(0xFFF19541),
+              shape: OvalBorder(),
+            ),
+          ),
+        ]),
+      ),
+    ]);
   }
 }
